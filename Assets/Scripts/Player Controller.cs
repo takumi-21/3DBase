@@ -4,19 +4,19 @@ using UnityEngine;
 [RequireComponent(typeof(Animator))]
 public class PlayerController : MonoBehaviour
 {
+    [SerializeField] private Animator _animator = null;
+    [SerializeField] private Rigidbody _rb = null;
+
     [SerializeField] private float _moveSpeed = 3f;
     [SerializeField] private float _rotationSpeed = 3f;
+    [SerializeField] private float _jumpPower = 10f;
 
-    [SerializeField] private float _jumpForce = 5f;
-    [SerializeField] private float _groundCheckDistance = 10f;
-
-    private Animator _anim;
-    private Rigidbody _rb;
+    private bool _isGround = true;
 
     private void Start()
     {
-        _anim = GetComponent<Animator>();
-        _rb = GetComponent<Rigidbody>();
+        if (_animator == null) _animator = GetComponent<Animator>();
+        if (_rb == null) _rb = GetComponent<Rigidbody>();
     }
 
     private void Update()
@@ -36,22 +36,40 @@ public class PlayerController : MonoBehaviour
             transform.rotation = Quaternion.Slerp(transform.rotation, look, _rotationSpeed);
         }
 
-        bool isGround = Physics.Raycast(transform.position, Vector3.down, _groundCheckDistance);
+        float radius = 0.2f;
+        float maxDistance = 0.2f;
+        Vector3 origin = transform.position + Vector3.up * 0.3f;
+        _isGround = Physics.SphereCast(origin, radius, Vector3.down, out _, maxDistance);
 
-        if (isGround && Input.GetKeyDown(KeyCode.Space))
+        if (!_isGround)
         {
-            _rb.AddForce(Vector3.up * _jumpForce, ForceMode.Impulse); // è„ï˚å¸Ç…óÕÇâ¡Ç¶ÇÈ
-        }
-
-        if (moveX == 0 && moveZ == 0)
-        {
-            _anim.SetBool("isRunning", false);
-            _anim.SetBool("isIdling", true);
+            _animator.SetBool("isIdle", false);
+            _animator.SetBool("isRun", false);
+            _animator.SetBool("isJump", true);
         }
         else
         {
-            _anim.SetBool("isIdling", false);
-            _anim.SetBool("isRunning", true);
+            if (moveX == 0 && moveZ == 0)
+            {
+                _animator.SetBool("isRun", false);
+                _animator.SetBool("isJump", false);
+                _animator.SetBool("isIdle", true);
+            }
+            else
+            {
+                _animator.SetBool("isIdle", false);
+                _animator.SetBool("isJump", false);
+                _animator.SetBool("isRun", true);
+            }
+        }
+    }
+
+    private void FixedUpdate()
+    {
+        if (_isGround && Input.GetKey(KeyCode.Space))
+        {
+            _rb.velocity = new Vector3(0f, _jumpPower, 0f);
+
         }
     }
 }
